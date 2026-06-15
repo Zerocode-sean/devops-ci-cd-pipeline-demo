@@ -20,7 +20,7 @@ jobs:
     
           
           script: |
-            cd ~/apps/ci-cd-demo || exit 
+            cd ~/apps/devops-ci-cd-pipeline-demo || exit 
 
             git pull origin main
 
