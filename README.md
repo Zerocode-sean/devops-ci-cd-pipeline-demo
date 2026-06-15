@@ -274,6 +274,47 @@ Paste entire private key.
 
 ## Phase 8 — GitHub Actions
 
+## Workflow example 
+
+```name: Deploy
+on:
+  push:
+    branches:
+      - main
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+
+      - name: Deploy to VPS 
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+    
+          
+          script: |
+            cd ~/apps/devops-ci-cd-pipeline-demo || exit 
+
+            git pull origin main
+
+            docker stop  ci-cd-demo || true
+
+            docker rm ci-cd-demo || true
+
+            docker build -t ci-cd-demo .
+            
+            docker run -d \
+             --name ci-cd-demo \
+              -p 3000:3000 \
+              ci-cd-demo
+        
+```
+
 Create `.github/workflows/deploy.yml` with the deploy workflow (see the existing file in this repo for the current configuration).
 
 ---
