@@ -20,12 +20,9 @@ jobs:
     
           
           script: |
-            env:
-            APP_DIR: devops-ci-cd-pipeline-
-            
-              ls -la ~/apps
+           
 
-            cd ~/${APP_DIR}
+            cd ~/apps/devops-ci-cd-demo
 
             git pull origin main
 
