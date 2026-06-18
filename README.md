@@ -381,8 +381,7 @@ By the end of the week, your repository should include:
 <img src="screenshot/screenshot1.png" alt="Screenshot" width="400">
 <p align="center">
   <p align="center">
-  <img src="images/screenshot.png" alt="Screenshot" width="400">
-</p>
+ 
 
 
 
