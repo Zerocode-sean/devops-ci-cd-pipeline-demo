@@ -377,22 +377,17 @@ By the end of the week, your repository should include:
 - Screenshots
 
 ## Screenshot 
+*Initial architecture*
 
-<img src="screenshot/screenshot1.png" alt="Screenshot" width="400">
+<img src="screenshot/screenshot2.png" alt="Screenshot" width="400">
 <p align="center">
   <p align="center">
  
+ *Improved architecture*
+
+<img src="screenshot/screenshot3.png" alt="Screenshot" width="400">
+<p align="center">
+  <p align="center">
 
 
 
-This becomes your first serious DevOps portfolio project. Once it's working, we'll improve it like a production engineer would:
-
-- Nginx reverse proxy
-- Domain name
-- HTTPS with Let's Encrypt
-- Multi-stage Docker builds
-- Health checks
-- Blue/Green deployments
-- Monitoring with Prometheus and Grafana
-
-Those upgrades turn a beginner CI/CD project into something that looks much closer to a real production platform.

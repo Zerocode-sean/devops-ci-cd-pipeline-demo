@@ -1,37 +1,75 @@
-name: Deploy
+name: CI/CD Deploy to VPS (GHCR)
+
 on:
   push:
-    branches:
-      - main
+    branches: [main]
+
+env:
+  IMAGE_NAME: ci-cd-demo
+
 jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set image tags
+        run: |
+          echo "SHA_TAG=sha-${GITHUB_SHA::7}" >> $GITHUB_ENV
+          echo "IMAGE=ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}" >> $GITHUB_ENV
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        run: |
+          docker build \
+            -t $IMAGE:latest \
+            -t $IMAGE:$SHA_TAG \
+            .
+
+          docker push $IMAGE:latest
+          docker push $IMAGE:$SHA_TAG
+
   deploy:
+    needs: build-and-push
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
-
-
-      - name: Deploy to VPS 
+      - name: Deploy to VPS via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
-    
-          
+
           script: |
-                cd ~/apps/devops-ci-cd-demo
+            set -e
 
-                git fetch origin
-                git reset --hard origin/main
+            IMAGE="ghcr.io/${{ github.repository_owner }}/ci-cd-demo"
+            SHA_TAG="sha-${GITHUB_SHA::7}"
 
-                docker stop ci-cd-demo || true
-                docker rm ci-cd-demo || true
+            echo "Deploying $IMAGE:$SHA_TAG"
 
-                docker build -t ci-cd-demo .
+            docker login ghcr.io -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}
 
-                docker run -d \
-                  --name ci-cd-demo \
-                  --restart unless-stopped \
-                  -p 127.0.0.1:3000:3000 \
-                  ci-cd-demo
+            docker pull $IMAGE:$SHA_TAG
+
+            docker stop ci-cd-demo || true
+            docker rm ci-cd-demo || true
+
+            docker run -d \
+              --name ci-cd-demo \
+              --restart unless-stopped \
+              -p 127.0.0.1:3000:3000 \
+              $IMAGE:$SHA_TAG
