@@ -37,6 +37,7 @@ jobs:
             
             docker run -d \
              --name ci-cd-demo \
-              -p 3000:3000 \
+             --restart unless-stopped \
+              -p 127.0.0.1:3000:3000 \
               ci-cd-demo
         
