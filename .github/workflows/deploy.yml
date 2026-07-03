@@ -76,7 +76,7 @@ jobs:
             echo "Deploying $FULL_IMAGE"
 
             # Login using PAT stored on the VPS
-            cat ~/.ghcr_token | docker login ghcr.io \
+            cat ~/.ghcr_tokennano | docker login ghcr.io \
               -u Zerocode-sean \
               --password-stdin
 
