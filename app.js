@@ -1,7 +1,7 @@
 const express = require('express');
 const app = express();
 app.get('/', (req, res) => {
-  res.send('CI/CD Pipeline  V1 pushed by arc channel !');
+  res.send('CI/CD Pipeline  V2  pushed by arc channel  deployed by Martin!');
 });
 
 app.get('/health', (req, res) => {
