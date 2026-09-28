@@ -1,4 +1,4 @@
-name: CI/CD Deploy to VPS (GHCR)
+name: CI/CD Deploy to EC2 (GHCR)
 
 on:
   push:
@@ -7,6 +7,11 @@ on:
 
 env:
   IMAGE_NAME: ci-cd-demo
+
+# Prevent two deploys from running at the same time
+concurrency:
+  group: deploy-main
+  cancel-in-progress: false
 
 jobs:
   build-and-push:
@@ -29,7 +34,6 @@ jobs:
         run: |
           OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
           TAG="sha-${GITHUB_SHA::7}"
-
           IMAGE="ghcr.io/$OWNER/${{ env.IMAGE_NAME }}"
 
           echo "image=$IMAGE" >> $GITHUB_OUTPUT
@@ -59,7 +63,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Deploy to VPS
+      - name: Deploy to EC2
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.EC2_HOST }}
@@ -69,33 +73,46 @@ jobs:
           script: |
             set -e
 
-            IMAGE="${{ needs.build-and-push.outputs.image }}"
-            TAG="${{ needs.build-and-push.outputs.tag }}"
-            FULL_IMAGE="$IMAGE:$TAG"
-
+            FULL_IMAGE="${{ needs.build-and-push.outputs.image }}:${{ needs.build-and-push.outputs.tag }}"
             echo "Deploying $FULL_IMAGE"
 
-            # Login using PAT stored on the VPS
+            # Login using the PAT stored on the server
             cat ~/.ghcr_tokennano | docker login ghcr.io \
               -u Zerocode-sean \
               --password-stdin
 
-            # Pull latest image
+            # Pull the new image
             docker pull $FULL_IMAGE
 
-            # Stop old container
-            docker stop ci-cd-demo || true
-            docker rm ci-cd-demo || true
+            # Remove the old container by name
+            docker rm -f ci-cd-demo || true
 
-            # Remove dangling images
-            docker image prune -f
+            # Remove ANY other container still holding port 80
+            docker ps -q --filter "publish=80" | xargs -r docker rm -f
 
-            # Start new container
+            # Start the new container (host port 80 -> app port 3000)
             docker run -d \
               --name ci-cd-demo \
               --restart unless-stopped \
-              -p 127.0.0.1:3000:3000 \
+              -p 80:3000 \
               $FULL_IMAGE
 
-            # Verify deployment
-            docker ps
+            # Delete all images not used by a running container
+            docker image prune -af
+
+            # Health check: retry for up to 30 seconds
+            for i in $(seq 1 10); do
+              if curl -fsS http://localhost:80 > /dev/null; then
+                echo "App responding on port 80"
+                break
+              fi
+              if [ "$i" -eq 10 ]; then
+                echo "App did not respond, failing deploy"
+                docker logs ci-cd-demo
+                exit 1
+              fi
+              sleep 3
+            done
+
+            echo "Running image:"
+            docker ps --filter name=ci-cd-demo --format '{{.Image}}  {{.Status}}'
